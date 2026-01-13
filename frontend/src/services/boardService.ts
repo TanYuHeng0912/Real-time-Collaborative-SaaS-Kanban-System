@@ -46,5 +46,14 @@ export const boardService = {
   deleteCard: async (cardId: number): Promise<void> => {
     await api.delete(`/cards/${cardId}`);
   },
+  
+  updateList: async (listId: number, data: CreateListRequest): Promise<ListDTO> => {
+    const response = await api.put<ListDTO>(`/lists/${listId}`, data);
+    return response.data;
+  },
+  
+  deleteList: async (listId: number): Promise<void> => {
+    await api.delete(`/lists/${listId}`);
+  },
 };
 

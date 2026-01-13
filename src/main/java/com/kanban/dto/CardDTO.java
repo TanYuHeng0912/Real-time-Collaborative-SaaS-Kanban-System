@@ -18,7 +18,11 @@ public class CardDTO {
     private Long listId;
     private Integer position;
     private Long createdBy;
+    private String creatorName;
     private Long assignedTo;
+    private String assigneeName;
+    private Long lastModifiedBy;
+    private String lastModifiedByName;
     private LocalDateTime dueDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

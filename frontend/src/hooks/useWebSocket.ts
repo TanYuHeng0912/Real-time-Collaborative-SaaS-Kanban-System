@@ -15,7 +15,7 @@ export const useWebSocket = ({ boardId, onCardUpdate }: UseWebSocketProps) => {
     if (!boardId) return;
 
     const client = new Client({
-      webSocketFactory: () => new SockJS('/ws') as any,
+      webSocketFactory: () => new SockJS('/api/ws') as any,
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,

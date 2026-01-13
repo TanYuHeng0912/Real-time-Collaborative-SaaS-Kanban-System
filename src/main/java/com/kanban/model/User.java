@@ -35,6 +35,11 @@ public class User {
     @Column(name = "full_name", length = 100)
     private String fullName;
     
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private UserRole role = UserRole.USER;
+    
     @Column(name = "is_deleted", nullable = false)
     @Builder.Default
     private Boolean isDeleted = false;
@@ -50,5 +55,9 @@ public class User {
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
     @Builder.Default
     private List<Workspace> ownedWorkspaces = new ArrayList<>();
+    
+    public enum UserRole {
+        ADMIN, USER
+    }
 }
 

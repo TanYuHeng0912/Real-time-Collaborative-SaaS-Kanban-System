@@ -39,6 +39,7 @@ public class AuthService {
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
+                .role(User.UserRole.USER) // Default role is USER
                 .isDeleted(false)
                 .build();
         
@@ -50,7 +51,8 @@ public class AuthService {
                 token,
                 user.getUsername(),
                 user.getEmail(),
-                user.getFullName()
+                user.getFullName(),
+                user.getRole()
         );
     }
     
@@ -75,7 +77,8 @@ public class AuthService {
                 token,
                 user.getUsername(),
                 user.getEmail(),
-                user.getFullName()
+                user.getFullName(),
+                user.getRole()
         );
     }
 }

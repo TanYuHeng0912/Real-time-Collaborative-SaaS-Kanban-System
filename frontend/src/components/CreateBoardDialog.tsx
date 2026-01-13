@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { workspaceService } from '@/services/workspaceService';
 import { boardService, CreateBoardRequest } from '@/services/boardService';
+import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -16,6 +17,7 @@ export default function CreateBoardDialog({ onBoardCreated }: CreateBoardDialogP
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState('');
   const queryClient = useQueryClient();
+  const isAdmin = useAuthStore((state) => state.isAdmin);
 
   const { data: workspaces } = useQuery({
     queryKey: ['workspaces'],
@@ -47,15 +49,18 @@ export default function CreateBoardDialog({ onBoardCreated }: CreateBoardDialogP
     try {
       let workspaceId: number;
 
-      // If user has workspaces, use the first one, otherwise create new
+      // If user has workspaces, use the first one
       if (workspaces && workspaces.length > 0) {
         workspaceId = workspaces[0].id;
-      } else {
+      } else if (isAdmin()) {
+        // Only admins can create workspaces
         const workspace = await createWorkspaceMutation.mutateAsync({
           name: workspaceName || 'My Workspace',
           description: '',
         });
         workspaceId = workspace.id;
+      } else {
+        throw new Error('No workspace available. Please contact an administrator to be added to a workspace.');
       }
 
       // Create board
@@ -85,7 +90,7 @@ export default function CreateBoardDialog({ onBoardCreated }: CreateBoardDialogP
               {error}
             </div>
           )}
-          {(!workspaces || workspaces.length === 0) && (
+          {(!workspaces || workspaces.length === 0) && isAdmin() && (
             <div>
               <Input
                 type="text"
@@ -93,6 +98,11 @@ export default function CreateBoardDialog({ onBoardCreated }: CreateBoardDialogP
                 value={workspaceName}
                 onChange={(e) => setWorkspaceName(e.target.value)}
               />
+            </div>
+          )}
+          {(!workspaces || workspaces.length === 0) && !isAdmin() && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded text-sm">
+              No workspace available. Please contact an administrator to be added to a workspace.
             </div>
           )}
           <div>

@@ -28,13 +28,13 @@ public class BoardService {
     private final WorkspaceRepository workspaceRepository;
     private final UserRepository userRepository;
     private final ListRepository listRepository;
+    private final PermissionService permissionService;
     
     @Transactional
     public BoardDTO createBoard(CreateBoardRequest request) {
-        String username = SecurityUtil.getCurrentUsername();
-        User user = userRepository.findByUsernameAndIsDeletedFalse(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        permissionService.verifyWorkspaceAccess(request.getWorkspaceId()); // Verify user has access to workspace
         
+        User user = permissionService.getCurrentUser();
         Workspace workspace = workspaceRepository.findByIdAndIsDeletedFalse(request.getWorkspaceId())
                 .orElseThrow(() -> new RuntimeException("Workspace not found"));
         
@@ -56,6 +56,8 @@ public class BoardService {
     
     @Transactional(readOnly = true)
     public BoardDTO getBoardById(Long id) {
+        permissionService.verifyBoardAccess(id); // Verify user has access to board
+        
         Board board = boardRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new RuntimeException("Board not found"));
         
@@ -64,6 +66,8 @@ public class BoardService {
     
     @Transactional(readOnly = true)
     public List<BoardDTO> getBoardsByWorkspaceId(Long workspaceId) {
+        permissionService.verifyWorkspaceAccess(workspaceId); // Verify user has access to workspace
+        
         List<Board> boards = boardRepository.findByWorkspaceIdAndIsDeletedFalse(workspaceId);
         return boards.stream()
                 .map(this::toDTO)
@@ -72,6 +76,8 @@ public class BoardService {
     
     @Transactional
     public BoardDTO updateBoard(Long id, CreateBoardRequest request) {
+        permissionService.verifyBoardAccess(id);
+        
         Board board = boardRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new RuntimeException("Board not found"));
         
@@ -84,6 +90,8 @@ public class BoardService {
     
     @Transactional
     public void deleteBoard(Long id) {
+        permissionService.verifyBoardAccess(id);
+        
         Board board = boardRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new RuntimeException("Board not found"));
         
@@ -136,7 +144,11 @@ public class BoardService {
                 .listId(card.getList().getId())
                 .position(card.getPosition())
                 .createdBy(card.getCreatedBy().getId())
+                .creatorName(card.getCreatedBy().getFullName() != null ? card.getCreatedBy().getFullName() : card.getCreatedBy().getUsername())
                 .assignedTo(card.getAssignedTo() != null ? card.getAssignedTo().getId() : null)
+                .assigneeName(card.getAssignedTo() != null ? (card.getAssignedTo().getFullName() != null ? card.getAssignedTo().getFullName() : card.getAssignedTo().getUsername()) : null)
+                .lastModifiedBy(card.getLastModifiedBy() != null ? card.getLastModifiedBy().getId() : null)
+                .lastModifiedByName(card.getLastModifiedBy() != null ? (card.getLastModifiedBy().getFullName() != null ? card.getLastModifiedBy().getFullName() : card.getLastModifiedBy().getUsername()) : null)
                 .dueDate(card.getDueDate())
                 .createdAt(card.getCreatedAt())
                 .updatedAt(card.getUpdatedAt())

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { boardService } from '@/services/boardService';
 import { useKanbanStore } from '@/store/kanbanStore';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -12,6 +13,7 @@ import Navigation from '@/components/Navigation';
 export default function DashboardPage() {
   const { boardId } = useParams<{ boardId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { setCurrentBoard, currentBoard, updateCardOptimistic, moveCardOptimistic, deleteCardOptimistic, addCardOptimistic } = useKanbanStore();
   
   const { data: board, isLoading, error } = useQuery({
@@ -27,28 +29,61 @@ export default function DashboardPage() {
     }
   }, [board, setCurrentBoard]);
 
-  const handleCardUpdate = (message: CardUpdateMessage) => {
+  const handleCardUpdate = (message: CardUpdateMessage | any) => {
+    if (!boardId || !message.boardId || Number(message.boardId) !== Number(boardId)) return;
+
+    // Handle BoardUpdateMessage (for lists) - refetch board data
+    if (message.type?.startsWith('LIST_')) {
+      const userName = message.lastModifiedByName || 'Someone';
+      const listName = message.list?.name || 'a list';
+      
+      switch (message.type) {
+        case 'LIST_CREATED':
+          toast.success(`${userName} created list "${listName}"`);
+          break;
+        case 'LIST_UPDATED':
+          toast.success(`${userName} updated list "${listName}"`);
+          break;
+        case 'LIST_DELETED':
+          toast.success(`${userName} deleted a list`);
+          break;
+      }
+      
+      // Refetch board data to get updated lists
+      queryClient.refetchQueries({ queryKey: ['board', boardId] });
+      return;
+    }
+
+    // Handle CardUpdateMessage (for cards)
     if (!currentBoard || message.boardId !== currentBoard.id) return;
+
+    const userName = message.lastModifiedByName || 'Someone';
+    const cardTitle = message.card?.title || 'a card';
 
     switch (message.type) {
       case 'CREATED':
         if (message.card) {
           addCardOptimistic(message.card);
+          toast.success(`${userName} created "${cardTitle}"`);
         }
         break;
       case 'UPDATED':
         if (message.card) {
           updateCardOptimistic(message.card);
+          toast.success(`${userName} updated "${cardTitle}"`);
         }
         break;
       case 'MOVED':
         if (message.card) {
           moveCardOptimistic(message.card.id, message.card.listId, message.card.position);
+          const listName = currentBoard.lists.find(l => l.id === message.card?.listId)?.name || 'another list';
+          toast.success(`${userName} moved "${cardTitle}" to ${listName}`);
         }
         break;
       case 'DELETED':
         if (message.cardId) {
           deleteCardOptimistic(message.cardId);
+          toast.success(`${userName} deleted a card`);
         }
         break;
     }

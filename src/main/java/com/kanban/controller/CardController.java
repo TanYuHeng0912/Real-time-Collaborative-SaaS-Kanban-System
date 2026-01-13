@@ -5,8 +5,10 @@ import com.kanban.dto.CardUpdateMessage;
 import com.kanban.dto.CreateCardRequest;
 import com.kanban.dto.MoveCardRequest;
 import com.kanban.dto.UpdateCardRequest;
+import com.kanban.model.User;
 import com.kanban.repository.ListRepository;
 import com.kanban.service.CardService;
+import com.kanban.service.PermissionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,6 +26,7 @@ public class CardController {
     private final CardService cardService;
     private final ListRepository listRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PermissionService permissionService;
     
     @PostMapping
     public ResponseEntity<CardDTO> createCard(@Valid @RequestBody CreateCardRequest request) {
@@ -35,7 +38,8 @@ public class CardController {
                 .orElse(null);
         
         if (boardId != null) {
-            CardUpdateMessage message = new CardUpdateMessage("CREATED", card, boardId, null, null);
+            CardUpdateMessage message = new CardUpdateMessage("CREATED", card, boardId, null, null, 
+                    card.getLastModifiedBy(), card.getLastModifiedByName());
             messagingTemplate.convertAndSend("/topic/board/" + boardId, message);
         }
         
@@ -65,7 +69,8 @@ public class CardController {
                 .orElse(null);
         
         if (boardId != null) {
-            CardUpdateMessage message = new CardUpdateMessage("UPDATED", card, boardId, null, null);
+            CardUpdateMessage message = new CardUpdateMessage("UPDATED", card, boardId, null, null,
+                    card.getLastModifiedBy(), card.getLastModifiedByName());
             messagingTemplate.convertAndSend("/topic/board/" + boardId, message);
         }
         
@@ -88,7 +93,8 @@ public class CardController {
                 .orElse(null);
         
         if (boardId != null) {
-            CardUpdateMessage message = new CardUpdateMessage("MOVED", card, boardId, previousListId, null);
+            CardUpdateMessage message = new CardUpdateMessage("MOVED", card, boardId, previousListId, null,
+                    card.getLastModifiedBy(), card.getLastModifiedByName());
             messagingTemplate.convertAndSend("/topic/board/" + boardId, message);
         }
         
@@ -102,11 +108,15 @@ public class CardController {
                 .map(list -> list.getBoard().getId())
                 .orElse(null);
         
+        User currentUser = permissionService.getCurrentUser();
+        String userName = currentUser.getFullName() != null ? currentUser.getFullName() : currentUser.getUsername();
+        
         cardService.deleteCard(id);
         
         // Broadcast card deletion to board subscribers
         if (boardId != null) {
-            CardUpdateMessage message = new CardUpdateMessage("DELETED", null, boardId, card.getListId(), id);
+            CardUpdateMessage message = new CardUpdateMessage("DELETED", null, boardId, card.getListId(), id,
+                    currentUser.getId(), userName);
             messagingTemplate.convertAndSend("/topic/board/" + boardId, message);
         }
         

@@ -13,4 +13,6 @@ public class CardUpdateMessage {
     private Long boardId;
     private Long previousListId; // For move operations
     private Long cardId; // For DELETE operations
+    private Long lastModifiedBy; // User ID who performed the action
+    private String lastModifiedByName; // User name who performed the action
 }

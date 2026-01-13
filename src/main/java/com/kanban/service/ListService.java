@@ -20,9 +20,12 @@ public class ListService {
     
     private final ListRepository listRepository;
     private final BoardRepository boardRepository;
+    private final PermissionService permissionService;
     
     @Transactional
     public ListDTO createList(CreateListRequest request) {
+        permissionService.verifyBoardAccess(request.getBoardId());
+        
         Board board = boardRepository.findByIdAndIsDeletedFalse(request.getBoardId())
                 .orElseThrow(() -> new RuntimeException("Board not found"));
         
@@ -60,6 +63,12 @@ public class ListService {
     
     @Transactional
     public ListDTO updateList(Long id, CreateListRequest request) {
+        permissionService.verifyBoardAccess(
+            listRepository.findByIdAndIsDeletedFalse(id)
+                .orElseThrow(() -> new RuntimeException("List not found"))
+                .getBoard().getId()
+        );
+        
         ListEntity list = listRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new RuntimeException("List not found"));
         
@@ -76,6 +85,8 @@ public class ListService {
     public void deleteList(Long id) {
         ListEntity list = listRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new RuntimeException("List not found"));
+        
+        permissionService.verifyBoardAccess(list.getBoard().getId());
         
         list.setIsDeleted(true);
         listRepository.save(list);

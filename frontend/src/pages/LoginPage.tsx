@@ -35,6 +35,7 @@ export default function LoginPage() {
         username: response.username,
         email: response.email,
         fullName: response.fullName,
+        role: response.role,
       });
       
       navigate('/dashboard'); // Navigate to dashboard (will show create board if no board)

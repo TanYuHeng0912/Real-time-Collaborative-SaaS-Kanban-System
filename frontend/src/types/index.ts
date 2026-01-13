@@ -12,7 +12,11 @@ export interface CardDTO {
   listId: number;
   position: number;
   createdBy: number;
+  creatorName?: string;
   assignedTo?: number;
+  assigneeName?: string;
+  lastModifiedBy?: number;
+  lastModifiedByName?: string;
   dueDate?: string;
   createdAt: string;
   updatedAt: string;
@@ -45,6 +49,8 @@ export interface CardUpdateMessage {
   boardId: number;
   previousListId?: number;
   cardId?: number;
+  lastModifiedBy?: number;
+  lastModifiedByName?: string;
 }
 
 export interface CreateListRequest {

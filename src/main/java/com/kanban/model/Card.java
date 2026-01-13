@@ -43,6 +43,10 @@ public class Card {
     @JoinColumn(name = "assigned_to")
     private User assignedTo;
     
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "last_modified_by")
+    private User lastModifiedBy;
+    
     @Column(name = "due_date")
     private LocalDateTime dueDate;
     

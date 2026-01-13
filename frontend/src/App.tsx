@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'react-hot-toast';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import { useAuthStore } from './store/authStore';
@@ -43,6 +44,7 @@ function App() {
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>
       </BrowserRouter>
+      <Toaster position="top-right" />
     </QueryClientProvider>
   );
 }
