@@ -38,7 +38,12 @@ export default function LoginPage() {
         role: response.role,
       });
       
-      navigate('/dashboard'); // Navigate to dashboard (will show create board if no board)
+      // Redirect admin to admin panel, regular users to dashboard
+      if (response.role === 'ADMIN') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'An error occurred');
     } finally {

@@ -116,6 +116,10 @@ public class CardService {
             card.setPosition(request.getPosition());
         }
         if (request.getAssignedTo() != null) {
+            // Only admins can assign cards
+            if (currentUser.getRole() != User.UserRole.ADMIN) {
+                throw new AccessDeniedException("Only administrators can assign cards.");
+            }
             User assignedTo = userRepository.findById(request.getAssignedTo())
                     .orElse(null);
             card.setAssignedTo(assignedTo);

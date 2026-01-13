@@ -18,6 +18,11 @@ export const boardService = {
     return response.data;
   },
   
+  getBoardsByWorkspaceId: async (workspaceId: number): Promise<BoardDTO[]> => {
+    const response = await api.get<BoardDTO[]>(`/boards/workspace/${workspaceId}`);
+    return response.data;
+  },
+  
   getListsByBoardId: async (boardId: number): Promise<ListDTO[]> => {
     const response = await api.get<ListDTO[]>(`/lists/board/${boardId}`);
     return response.data;
@@ -54,6 +59,15 @@ export const boardService = {
   
   deleteList: async (listId: number): Promise<void> => {
     await api.delete(`/lists/${listId}`);
+  },
+  
+  updateBoard: async (boardId: number, data: CreateBoardRequest): Promise<BoardDTO> => {
+    const response = await api.put<BoardDTO>(`/boards/${boardId}`, data);
+    return response.data;
+  },
+  
+  deleteBoard: async (boardId: number): Promise<void> => {
+    await api.delete(`/boards/${boardId}`);
   },
 };
 

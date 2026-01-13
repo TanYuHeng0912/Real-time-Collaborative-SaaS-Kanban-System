@@ -13,15 +13,35 @@ interface AuthState {
   isAdmin: () => boolean;
 }
 
+// Helper functions for localStorage
+const getUserFromStorage = () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveUserToStorage = (user: AuthState['user']) => {
+  if (user) {
+    localStorage.setItem('user', JSON.stringify(user));
+  } else {
+    localStorage.removeItem('user');
+  }
+};
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   token: localStorage.getItem('token'),
-  user: null,
+  user: getUserFromStorage(),
   setAuth: (token, user) => {
     localStorage.setItem('token', token);
+    saveUserToStorage(user);
     set({ token, user });
   },
   logout: () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     set({ token: null, user: null });
   },
   isAdmin: () => {

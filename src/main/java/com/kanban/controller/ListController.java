@@ -34,7 +34,7 @@ public class ListController {
         User currentUser = permissionService.getCurrentUser();
         String userName = currentUser.getFullName() != null ? currentUser.getFullName() : currentUser.getUsername();
         
-        BoardUpdateMessage message = new BoardUpdateMessage("LIST_CREATED", null, list, request.getBoardId(), 
+        BoardUpdateMessage message = new BoardUpdateMessage("LIST_CREATED", null, list, null, request.getBoardId(), 
                 null, null, null, currentUser.getId(), userName);
         messagingTemplate.convertAndSend("/topic/board/" + request.getBoardId(), message);
         
@@ -62,7 +62,7 @@ public class ListController {
         User currentUser = permissionService.getCurrentUser();
         String userName = currentUser.getFullName() != null ? currentUser.getFullName() : currentUser.getUsername();
         
-        BoardUpdateMessage message = new BoardUpdateMessage("LIST_UPDATED", null, list, list.getBoardId(), 
+        BoardUpdateMessage message = new BoardUpdateMessage("LIST_UPDATED", null, list, null, list.getBoardId(), 
                 null, null, null, currentUser.getId(), userName);
         messagingTemplate.convertAndSend("/topic/board/" + list.getBoardId(), message);
         
@@ -81,7 +81,7 @@ public class ListController {
         listService.deleteList(id);
         
         // Broadcast list deletion to board subscribers
-        BoardUpdateMessage message = new BoardUpdateMessage("LIST_DELETED", null, null, boardId, 
+        BoardUpdateMessage message = new BoardUpdateMessage("LIST_DELETED", null, null, null, boardId, 
                 null, null, listId, currentUser.getId(), userName);
         messagingTemplate.convertAndSend("/topic/board/" + boardId, message);
         

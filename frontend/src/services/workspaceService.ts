@@ -22,5 +22,13 @@ export const workspaceService = {
     const response = await api.get<WorkspaceDTO[]>('/workspaces/my');
     return response.data;
   },
+  
+  assignUserToWorkspace: async (workspaceId: number, userId: number, role: 'OWNER' | 'ADMIN' | 'MEMBER'): Promise<void> => {
+    await api.post(`/workspaces/${workspaceId}/assign`, { userId, role });
+  },
+  
+  removeUserFromWorkspace: async (workspaceId: number, userId: number): Promise<void> => {
+    await api.delete(`/workspaces/${workspaceId}/members/${userId}`);
+  },
 };
 

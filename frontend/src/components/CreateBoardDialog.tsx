@@ -38,6 +38,7 @@ export default function CreateBoardDialog({ onBoardCreated }: CreateBoardDialogP
   const createBoardMutation = useMutation({
     mutationFn: boardService.createBoard,
     onSuccess: (board) => {
+      queryClient.invalidateQueries({ queryKey: ['all-boards'] }); // Refresh board selector
       onBoardCreated(board.id);
     },
   });

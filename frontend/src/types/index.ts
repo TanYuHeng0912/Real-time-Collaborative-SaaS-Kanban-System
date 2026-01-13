@@ -53,6 +53,19 @@ export interface CardUpdateMessage {
   lastModifiedByName?: string;
 }
 
+export interface BoardUpdateMessage {
+  type: 'LIST_CREATED' | 'LIST_UPDATED' | 'LIST_DELETED' | 'BOARD_CREATED' | 'BOARD_UPDATED' | 'BOARD_DELETED';
+  card?: CardDTO;
+  list?: ListDTO;
+  board?: BoardDTO;
+  boardId: number;
+  previousListId?: number;
+  cardId?: number;
+  listId?: number;
+  lastModifiedBy?: number;
+  lastModifiedByName?: string;
+}
+
 export interface CreateListRequest {
   name: string;
   boardId: number;

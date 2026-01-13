@@ -3,11 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { boardService } from '@/services/boardService';
+import { workspaceService } from '@/services/workspaceService';
 import { useKanbanStore } from '@/store/kanbanStore';
+import { useAuthStore } from '@/store/authStore';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { CardUpdateMessage } from '@/types';
 import KanbanBoard from '@/components/KanbanBoard';
 import CreateBoardDialog from '@/components/CreateBoardDialog';
+import NoBoardsMessage from '@/components/NoBoardsMessage';
 import Navigation from '@/components/Navigation';
 
 export default function DashboardPage() {
@@ -15,6 +18,43 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { setCurrentBoard, currentBoard, updateCardOptimistic, moveCardOptimistic, deleteCardOptimistic, addCardOptimistic } = useKanbanStore();
+  const isAdmin = useAuthStore((state) => state.isAdmin);
+  
+  // Fetch workspaces and boards to check if user has any boards
+  const { data: workspaces } = useQuery({
+    queryKey: ['workspaces'],
+    queryFn: workspaceService.getMyWorkspaces,
+    retry: false,
+  });
+  
+  // Fetch all boards for all workspaces (only when no boardId to check if user has boards)
+  const { data: allBoardsData } = useQuery({
+    queryKey: ['all-boards-flat'],
+    queryFn: async () => {
+      if (!workspaces) return [];
+      const allBoardsPromises = workspaces.map(async (workspace) => {
+        try {
+          const boards = await boardService.getBoardsByWorkspaceId(workspace.id);
+          return boards;
+        } catch (error) {
+          return [];
+        }
+      });
+      const results = await Promise.all(allBoardsPromises);
+      return results.flat();
+    },
+    enabled: !boardId && !!workspaces && workspaces.length > 0,
+    retry: false,
+  });
+  
+  const hasBoards = (allBoardsData && allBoardsData.length > 0) || false;
+  
+  // Auto-redirect to first board if user has boards
+  useEffect(() => {
+    if (!boardId && hasBoards && allBoardsData && allBoardsData.length > 0) {
+      navigate(`/dashboard/${allBoardsData[0].id}`, { replace: true });
+    }
+  }, [boardId, hasBoards, allBoardsData, navigate]);
   
   const { data: board, isLoading, error } = useQuery({
     queryKey: ['board', boardId],
@@ -98,13 +138,38 @@ export default function DashboardPage() {
     onCardUpdate: handleCardUpdate,
   });
 
-  // If no boardId, show create board dialog
+  // If no boardId, handle based on user type and available boards
   if (!boardId) {
+    // Show loading while checking for boards
+    if (allBoardsData === undefined && workspaces !== undefined) {
+      return (
+        <div className="h-screen bg-gray-50 flex flex-col">
+          <Navigation />
+          <div className="flex-1 flex items-center justify-center">Loading...</div>
+        </div>
+      );
+    }
+    
+    // If user has boards, the useEffect will redirect, so show loading
+    if (hasBoards) {
+      return (
+        <div className="h-screen bg-gray-50 flex flex-col">
+          <Navigation />
+          <div className="flex-1 flex items-center justify-center">Loading...</div>
+        </div>
+      );
+    }
+    
+    // Admin can create boards, regular users see message
     return (
       <div className="h-screen bg-gray-50 flex flex-col">
         <Navigation />
         <div className="flex-1 flex items-center justify-center">
-          <CreateBoardDialog onBoardCreated={handleBoardCreated} />
+          {isAdmin() ? (
+            <CreateBoardDialog onBoardCreated={handleBoardCreated} />
+          ) : (
+            <NoBoardsMessage />
+          )}
         </div>
       </div>
     );
@@ -120,11 +185,16 @@ export default function DashboardPage() {
   }
 
   if ((!board && !isLoading) || error) {
+    // If board not found, show appropriate message
     return (
       <div className="h-screen bg-gray-50 flex flex-col">
         <Navigation />
         <div className="flex-1 flex items-center justify-center">
-          <CreateBoardDialog onBoardCreated={handleBoardCreated} />
+          {isAdmin() ? (
+            <CreateBoardDialog onBoardCreated={handleBoardCreated} />
+          ) : (
+            <NoBoardsMessage />
+          )}
         </div>
       </div>
     );

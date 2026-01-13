@@ -2,6 +2,7 @@ package com.kanban.controller;
 
 import com.kanban.model.WorkspaceMember;
 import com.kanban.service.WorkspaceService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,7 +22,7 @@ public class WorkspaceController {
     
     @PostMapping
     public ResponseEntity<WorkspaceService.WorkspaceDTO> createWorkspace(
-            @RequestBody WorkspaceService.CreateWorkspaceRequest request
+            @Valid @RequestBody WorkspaceService.CreateWorkspaceRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(workspaceService.createWorkspace(request));
@@ -40,6 +41,15 @@ public class WorkspaceController {
         workspaceService.assignUserToWorkspace(workspaceId, request.getUserId(), 
                 request.getRole() != null ? WorkspaceMember.WorkspaceRole.valueOf(request.getRole()) : WorkspaceMember.WorkspaceRole.MEMBER);
         return ResponseEntity.ok().build();
+    }
+    
+    @DeleteMapping("/{workspaceId}/members/{userId}")
+    public ResponseEntity<Void> removeUserFromWorkspace(
+            @PathVariable Long workspaceId,
+            @PathVariable Long userId
+    ) {
+        workspaceService.removeUserFromWorkspace(workspaceId, userId);
+        return ResponseEntity.noContent().build();
     }
     
     @Data

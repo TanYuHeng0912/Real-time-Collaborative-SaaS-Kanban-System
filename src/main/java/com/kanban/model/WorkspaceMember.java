@@ -31,7 +31,7 @@ public class WorkspaceMember {
     private User user;
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "role", nullable = false, length = 20)
     @Builder.Default
     private WorkspaceRole role = WorkspaceRole.MEMBER;
     

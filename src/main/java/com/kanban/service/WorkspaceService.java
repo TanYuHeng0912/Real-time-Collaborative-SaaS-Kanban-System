@@ -29,6 +29,7 @@ public class WorkspaceService {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class CreateWorkspaceRequest {
+        @jakarta.validation.constraints.NotBlank(message = "Workspace name is required")
         private String name;
         private String description;
     }
@@ -135,6 +136,17 @@ public class WorkspaceService {
                         workspaceMemberRepository.save(member);
                     }
                 );
+    }
+    
+    @Transactional
+    public void removeUserFromWorkspace(Long workspaceId, Long userId) {
+        permissionService.verifyAdmin(); // Only ADMIN can remove users
+        
+        WorkspaceMember member = workspaceMemberRepository.findByWorkspaceIdAndUserIdAndIsDeletedFalse(workspaceId, userId)
+                .orElseThrow(() -> new RuntimeException("User is not a member of this workspace"));
+        
+        member.setIsDeleted(true);
+        workspaceMemberRepository.save(member);
     }
 }
 

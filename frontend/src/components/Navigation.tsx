@@ -9,10 +9,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Settings, LayoutDashboard } from 'lucide-react';
+import { LogOut, Shield } from 'lucide-react';
+import BoardSelector from './BoardSelector';
 
 export default function Navigation() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, isAdmin } = useAuthStore();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -40,13 +41,14 @@ export default function Navigation() {
       <div className="flex items-center gap-4">
         <div 
           className="flex items-center gap-2 cursor-pointer"
-          onClick={() => navigate('/dashboard/1')}
+          onClick={() => navigate('/dashboard')}
         >
           <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
             <span className="text-white font-bold text-lg">K</span>
           </div>
           <span className="text-xl font-semibold text-gray-900">Kanban</span>
         </div>
+        <BoardSelector />
       </div>
 
       <div className="flex items-center gap-4">
@@ -70,19 +72,13 @@ export default function Navigation() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <LayoutDashboard className="mr-2 h-4 w-4" />
-              <span>Boards</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            {isAdmin() && (
+              <DropdownMenuItem onClick={() => navigate('/admin')}>
+                <Shield className="mr-2 h-4 w-4" />
+                <span>Admin Dashboard</span>
+              </DropdownMenuItem>
+            )}
+            {isAdmin() && <DropdownMenuSeparator />}
             <DropdownMenuItem onClick={handleLogout} className="text-red-600">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
