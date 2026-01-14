@@ -154,11 +154,25 @@ public class BoardService {
     }
     
     private com.kanban.dto.CardDTO cardToDTO(com.kanban.model.Card card) {
-        // Get assigned user IDs and names
-        // Note: assignedUsers collection is lazy-loaded and not fetched in board query
-        // For now, return empty lists - assignedUsers will be populated when cards are loaded individually
+        // Get assigned user IDs and names (lazy-load the collection within transaction)
         List<Long> assignedUserIds = new java.util.ArrayList<>();
         List<String> assignedUserNames = new java.util.ArrayList<>();
+        
+        try {
+            // Access the lazy-loaded collection - this will trigger loading within the transaction
+            List<com.kanban.model.User> assignedUsers = card.getAssignedUsers();
+            if (assignedUsers != null && !assignedUsers.isEmpty()) {
+                assignedUserIds = assignedUsers.stream()
+                        .map(com.kanban.model.User::getId)
+                        .collect(java.util.stream.Collectors.toList());
+                assignedUserNames = assignedUsers.stream()
+                        .map(this::formatUserName)
+                        .collect(java.util.stream.Collectors.toList());
+            }
+        } catch (Exception e) {
+            // If lazy loading fails, use empty lists
+            // This shouldn't happen in a @Transactional method, but handle gracefully
+        }
         
         // Backward compatibility: assignedTo and assigneeName (use first assignee if exists)
         Long assignedTo = assignedUserIds.isEmpty() ? null : assignedUserIds.get(0);
