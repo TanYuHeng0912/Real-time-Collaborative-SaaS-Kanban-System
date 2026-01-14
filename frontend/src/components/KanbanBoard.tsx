@@ -7,6 +7,7 @@ import { BoardDTO, MoveCardRequest } from '@/types';
 import KanbanList from './KanbanList';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import toast from 'react-hot-toast';
 
 interface KanbanBoardProps {
   board: BoardDTO;
@@ -34,11 +35,14 @@ export default function KanbanBoard({ board }: KanbanBoardProps) {
       // Optimistic update
       moveCardOptimistic(cardId, data.targetListId, data.newPosition);
     },
-    onError: () => {
+    onError: (error: any) => {
       // Rollback on error
       if (previousBoardState) {
         rollbackBoard(previousBoardState);
       }
+      // Show error message
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to move card';
+      toast.error(errorMessage);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board', board.id] });

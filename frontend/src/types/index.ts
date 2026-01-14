@@ -13,8 +13,10 @@ export interface CardDTO {
   position: number;
   createdBy: number;
   creatorName?: string;
-  assignedTo?: number;
-  assigneeName?: string;
+  assignedTo?: number; // Deprecated, kept for backward compatibility
+  assigneeName?: string; // Deprecated, kept for backward compatibility
+  assignedUserIds?: number[]; // New: multiple assignees
+  assignedUserNames?: string[]; // New: assignee names
   lastModifiedBy?: number;
   lastModifiedByName?: string;
   dueDate?: string;
@@ -77,7 +79,8 @@ export interface CreateCardRequest {
   description?: string;
   listId: number;
   position?: number;
-  assignedTo?: number;
+  assignedTo?: number; // Deprecated, use assignedUserIds instead
+  assignedUserIds?: number[]; // New: multiple assignees
   dueDate?: string;
 }
 

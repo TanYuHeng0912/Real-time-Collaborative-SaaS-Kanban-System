@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CardDTO } from '@/types';
 import { boardService } from '@/services/boardService';
-import { userService, SimpleUserDTO } from '@/services/userService';
+import { userService } from '@/services/userService';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -28,10 +28,19 @@ const getInitials = (name?: string): string => {
 export default function CardDetailsModal({ card, boardId, isOpen, onClose }: CardDetailsModalProps) {
   const queryClient = useQueryClient();
   const isAdmin = useAuthStore((state) => state.isAdmin);
+  // Helper function to extract date part from ISO string without timezone conversion
+  const extractDatePart = (dateString: string): string => {
+    if (!dateString) return '';
+    // If it's already in YYYY-MM-DD format, return as is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+    // Otherwise, extract the date part before 'T' or space
+    return dateString.split('T')[0].split(' ')[0];
+  };
+
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description || '');
-  const [assignedTo, setAssignedTo] = useState<number | null>(card.assignedTo || null);
-  const [dueDate, setDueDate] = useState(card.dueDate ? new Date(card.dueDate).toISOString().split('T')[0] : '');
+  const [assignedUserIds, setAssignedUserIds] = useState<number[]>(card.assignedUserIds || (card.assignedTo ? [card.assignedTo] : []));
+  const [dueDate, setDueDate] = useState(card.dueDate ? extractDatePart(card.dueDate) : '');
 
   const { data: users } = useQuery({
     queryKey: ['users', 'board', boardId],
@@ -43,8 +52,8 @@ export default function CardDetailsModal({ card, boardId, isOpen, onClose }: Car
     if (isOpen) {
       setTitle(card.title);
       setDescription(card.description || '');
-      setAssignedTo(card.assignedTo || null);
-      setDueDate(card.dueDate ? new Date(card.dueDate).toISOString().split('T')[0] : '');
+      setAssignedUserIds(card.assignedUserIds || (card.assignedTo ? [card.assignedTo] : []));
+      setDueDate(card.dueDate ? extractDatePart(card.dueDate) : '');
     }
   }, [card, isOpen]);
 
@@ -52,20 +61,39 @@ export default function CardDetailsModal({ card, boardId, isOpen, onClose }: Car
     mutationFn: (data: {
       title: string;
       description?: string;
-      assignedTo?: number | null;
+      assignedUserIds?: number[];
       dueDate?: string;
-    }) => boardService.updateCard(card.id, {
-      ...data,
-      listId: card.listId,
-      assignedTo: data.assignedTo || undefined,
-      dueDate: data.dueDate || undefined,
-    }),
+    }) => {
+      // Build update payload - only include assignedUserIds if user is admin
+      const updateData: any = {
+        title: data.title,
+        listId: card.listId,
+      };
+      
+      if (data.description !== undefined) {
+        updateData.description = data.description;
+      }
+      
+      if (data.dueDate !== undefined) {
+        updateData.dueDate = data.dueDate;
+      }
+      
+      // Only include assignedUserIds if user is admin (they can change it)
+      // Non-admins shouldn't send this field at all
+      if (isAdmin() && data.assignedUserIds !== undefined) {
+        updateData.assignedUserIds = data.assignedUserIds.length > 0 ? data.assignedUserIds : [];
+      }
+      
+      return boardService.updateCard(card.id, updateData);
+    },
     onSuccess: () => {
       queryClient.refetchQueries({ queryKey: ['board', boardId] });
       toast.success('Card updated successfully');
     },
-    onError: () => {
-      toast.error('Failed to update card');
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to update card';
+      toast.error(errorMessage);
+      console.error('Failed to update card:', error);
     },
   });
 
@@ -78,12 +106,20 @@ export default function CardDetailsModal({ card, boardId, isOpen, onClose }: Car
     updateCardMutation.mutate({
       title: title.trim(),
       description: description.trim() || undefined,
-      assignedTo: assignedTo,
+      assignedUserIds: isAdmin() ? assignedUserIds : undefined, // Always send assignedUserIds for admins (even if empty array)
       dueDate: dueDate || undefined,
     });
   };
 
-  const selectedUser = users?.find(u => u.id === assignedTo);
+  const handleAssigneeChange = (userId: number, checked: boolean) => {
+    if (checked) {
+      setAssignedUserIds([...assignedUserIds, userId]);
+    } else {
+      setAssignedUserIds(assignedUserIds.filter(id => id !== userId));
+    }
+  };
+
+  const selectedUsers = users?.filter(u => assignedUserIds.includes(u.id)) || [];
 
   if (!isOpen) return null;
 
@@ -131,33 +167,56 @@ export default function CardDetailsModal({ card, boardId, isOpen, onClose }: Car
             />
           </div>
 
-          {/* Assignee */}
+          {/* Assignees */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <User className="inline h-4 w-4 mr-1" />
-              Assignee {!isAdmin() && <span className="text-xs text-gray-500">(Admin only)</span>}
+              Assignees {!isAdmin() && <span className="text-xs text-gray-500">(Admin only)</span>}
             </label>
-            <select
-              value={assignedTo || ''}
-              onChange={(e) => setAssignedTo(e.target.value ? Number(e.target.value) : null)}
-              disabled={!isAdmin()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-            >
-              <option value="">Unassigned</option>
-              {users?.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.fullName || user.username}
-                </option>
-              ))}
-            </select>
-            {selectedUser && (
-              <div className="mt-2 flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-medium">
-                  {getInitials(selectedUser.fullName || selectedUser.username)}
-                </div>
-                <span className="text-sm text-gray-600">
-                  {selectedUser.fullName || selectedUser.username}
-                </span>
+            {isAdmin() ? (
+              <div className="border border-gray-300 rounded-md p-3 max-h-48 overflow-y-auto">
+                {users && users.length > 0 ? (
+                  <div className="space-y-2">
+                    {users.map((user) => (
+                      <label key={user.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <input
+                          type="checkbox"
+                          checked={assignedUserIds.includes(user.id)}
+                          onChange={(e) => handleAssigneeChange(user.id, e.target.checked)}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-medium">
+                            {getInitials(user.fullName || user.username)}
+                          </div>
+                          <span className="text-sm text-gray-700">
+                            {user.fullName || user.username}
+                          </span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No users available</p>
+                )}
+              </div>
+            ) : (
+              <div className="border border-gray-300 rounded-md p-3 bg-gray-100">
+                <p className="text-sm text-gray-500">Only administrators can assign users</p>
+              </div>
+            )}
+            {selectedUsers.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {selectedUsers.map((user) => (
+                  <div key={user.id} className="flex items-center gap-2 bg-blue-50 px-2 py-1 rounded-full">
+                    <div className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-medium">
+                      {getInitials(user.fullName || user.username)}
+                    </div>
+                    <span className="text-sm text-gray-700">
+                      {user.fullName || user.username}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
           </div>

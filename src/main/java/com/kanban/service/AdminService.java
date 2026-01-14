@@ -4,6 +4,7 @@ import com.kanban.dto.*;
 import com.kanban.model.Board;
 import com.kanban.model.User;
 import com.kanban.model.Workspace;
+import com.kanban.repository.BoardMemberRepository;
 import com.kanban.repository.BoardRepository;
 import com.kanban.repository.CardRepository;
 import com.kanban.repository.UserRepository;
@@ -23,6 +24,7 @@ public class AdminService {
     private final UserRepository userRepository;
     private final WorkspaceRepository workspaceRepository;
     private final BoardRepository boardRepository;
+    private final BoardMemberRepository boardMemberRepository;
     private final CardRepository cardRepository;
     private final PermissionService permissionService;
     private final WorkspaceMemberRepository workspaceMemberRepository;
@@ -194,6 +196,68 @@ public class AdminService {
                 .createdBy(board.getCreatedBy().getId())
                 .createdAt(board.getCreatedAt())
                 .updatedAt(board.getUpdatedAt())
+                .build();
+    }
+    
+    // Board Member Management
+    @Transactional
+    public BoardMemberDTO assignUserToBoard(Long boardId, Long userId) {
+        permissionService.verifyAdmin();
+        
+        Board board = boardRepository.findByIdAndIsDeletedFalse(boardId)
+                .orElseThrow(() -> new RuntimeException("Board not found"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // Check if already a member
+        if (boardMemberRepository.existsByBoardIdAndUserIdAndIsDeletedFalse(boardId, userId)) {
+            throw new RuntimeException("User is already a member of this board");
+        }
+        
+        com.kanban.model.BoardMember boardMember = com.kanban.model.BoardMember.builder()
+                .board(board)
+                .user(user)
+                .isDeleted(false)
+                .build();
+        
+        boardMember = boardMemberRepository.save(boardMember);
+        return boardMemberToDTO(boardMember);
+    }
+    
+    @Transactional
+    public void removeUserFromBoard(Long boardId, Long userId) {
+        permissionService.verifyAdmin();
+        
+        com.kanban.model.BoardMember boardMember = boardMemberRepository
+                .findByBoardIdAndUserIdAndIsDeletedFalse(boardId, userId)
+                .orElseThrow(() -> new RuntimeException("User is not a member of this board"));
+        
+        boardMember.setIsDeleted(true);
+        boardMemberRepository.save(boardMember);
+    }
+    
+    @Transactional(readOnly = true)
+    public List<BoardMemberDTO> getBoardMembers(Long boardId) {
+        permissionService.verifyAdmin();
+        
+        return boardMemberRepository.findByBoardIdAndIsDeletedFalse(boardId).stream()
+                .map(this::boardMemberToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    private BoardMemberDTO boardMemberToDTO(com.kanban.model.BoardMember member) {
+        String userName = member.getUser().getFullName() != null 
+                ? member.getUser().getFullName() 
+                : member.getUser().getUsername();
+        
+        return BoardMemberDTO.builder()
+                .id(member.getId())
+                .boardId(member.getBoard().getId())
+                .userId(member.getUser().getId())
+                .username(member.getUser().getUsername())
+                .email(member.getUser().getEmail())
+                .fullName(member.getUser().getFullName())
+                .createdAt(member.getCreatedAt())
                 .build();
     }
 }

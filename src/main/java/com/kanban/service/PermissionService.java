@@ -5,6 +5,7 @@ import com.kanban.model.ListEntity;
 import com.kanban.model.User;
 import com.kanban.model.Workspace;
 import com.kanban.model.WorkspaceMember;
+import com.kanban.repository.BoardMemberRepository;
 import com.kanban.repository.BoardRepository;
 import com.kanban.repository.CardRepository;
 import com.kanban.repository.ListRepository;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PermissionService {
     
     private final WorkspaceMemberRepository workspaceMemberRepository;
+    private final BoardMemberRepository boardMemberRepository;
     private final WorkspaceRepository workspaceRepository;
     private final BoardRepository boardRepository;
     private final UserRepository userRepository;
@@ -50,6 +52,12 @@ public class PermissionService {
             return true; // Admins have access to all boards
         }
         
+        // Check if user is a board member (board-level assignment)
+        if (boardMemberRepository.existsByBoardIdAndUserIdAndIsDeletedFalse(boardId, user.getId())) {
+            return true;
+        }
+        
+        // Fallback to workspace access
         return boardRepository.findByIdAndIsDeletedFalse(boardId)
                 .map(board -> hasWorkspaceAccess(board.getWorkspace().getId()))
                 .orElse(false);
@@ -94,6 +102,12 @@ public class PermissionService {
             return true; // Admins have access to all boards
         }
         
+        // Check if user is a board member (board-level assignment)
+        if (boardMemberRepository.existsByBoardIdAndUserIdAndIsDeletedFalse(boardId, user.getId())) {
+            return true;
+        }
+        
+        // Fallback to workspace access
         return boardRepository.findByIdAndIsDeletedFalse(boardId)
                 .map(board -> hasWorkspaceAccess(board.getWorkspace().getId(), user))
                 .orElse(false);
@@ -119,8 +133,14 @@ public class PermissionService {
             return false;
         }
         
-        // User can edit if they have access to the board
-        return hasBoardAccess(card.getList().getBoard().getId(), user);
+        // User can edit if:
+        // 1. They created the card, OR
+        // 2. The card is assigned to them (in assignedUsers list)
+        boolean isCreator = card.getCreatedBy().getId().equals(user.getId());
+        boolean isAssigned = card.getAssignedUsers().stream()
+                .anyMatch(u -> u.getId().equals(user.getId()));
+        
+        return isCreator || isAssigned;
     }
     
     @Transactional(readOnly = true)
@@ -135,9 +155,14 @@ public class PermissionService {
             return false;
         }
         
-        // User can delete if they created the card OR have access to the board
-        return card.getCreatedBy().getId().equals(user.getId()) || 
-               hasBoardAccess(card.getList().getBoard().getId(), user);
+        // User can delete if:
+        // 1. They created the card, OR
+        // 2. The card is assigned to them (in assignedUsers list)
+        boolean isCreator = card.getCreatedBy().getId().equals(user.getId());
+        boolean isAssigned = card.getAssignedUsers().stream()
+                .anyMatch(u -> u.getId().equals(user.getId()));
+        
+        return isCreator || isAssigned;
     }
     
     @Transactional(readOnly = true)

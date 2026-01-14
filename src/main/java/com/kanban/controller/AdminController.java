@@ -60,5 +60,28 @@ public class AdminController {
     public ResponseEntity<SystemStatisticsDTO> getSystemStatistics() {
         return ResponseEntity.ok(adminService.getSystemStatistics());
     }
+    
+    // Board Member Management
+    @PostMapping("/boards/{boardId}/members")
+    public ResponseEntity<BoardMemberDTO> assignUserToBoard(
+            @PathVariable Long boardId,
+            @Valid @RequestBody AssignUserToBoardRequest request
+    ) {
+        return ResponseEntity.ok(adminService.assignUserToBoard(boardId, request.getUserId()));
+    }
+    
+    @DeleteMapping("/boards/{boardId}/members/{userId}")
+    public ResponseEntity<Void> removeUserFromBoard(
+            @PathVariable Long boardId,
+            @PathVariable Long userId
+    ) {
+        adminService.removeUserFromBoard(boardId, userId);
+        return ResponseEntity.noContent().build();
+    }
+    
+    @GetMapping("/boards/{boardId}/members")
+    public ResponseEntity<List<BoardMemberDTO>> getBoardMembers(@PathVariable Long boardId) {
+        return ResponseEntity.ok(adminService.getBoardMembers(boardId));
+    }
 }
 

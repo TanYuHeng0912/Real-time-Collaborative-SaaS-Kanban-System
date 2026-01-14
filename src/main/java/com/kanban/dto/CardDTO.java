@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -19,8 +20,10 @@ public class CardDTO {
     private Integer position;
     private Long createdBy;
     private String creatorName;
-    private Long assignedTo;
-    private String assigneeName;
+    private Long assignedTo; // Deprecated, kept for backward compatibility
+    private String assigneeName; // Deprecated, kept for backward compatibility
+    private List<Long> assignedUserIds; // New: multiple assignees
+    private List<String> assignedUserNames; // New: assignee names
     private Long lastModifiedBy;
     private String lastModifiedByName;
     private LocalDateTime dueDate;

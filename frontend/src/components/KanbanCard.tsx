@@ -7,6 +7,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Trash2, Edit2 } from 'lucide-react';
 import CardDetailsModal from './CardDetailsModal';
+import toast from 'react-hot-toast';
 
 interface KanbanCardProps {
   card: CardDTO;
@@ -46,6 +47,10 @@ export default function KanbanCard({ card, index, listId, boardId }: KanbanCardP
     mutationFn: () => boardService.deleteCard(card.id),
     onSuccess: () => {
       queryClient.refetchQueries({ queryKey: ['board', boardId] });
+    },
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to delete card';
+      toast.error(errorMessage);
     },
   });
 
@@ -177,13 +182,28 @@ export default function KanbanCard({ card, index, listId, boardId }: KanbanCardP
               </>
             )}
             <div className="flex items-center justify-between mt-2">
-              {card.assigneeName && (
-                <div className="flex items-center gap-1" title={`Assigned to: ${card.assigneeName}`}>
-                  <div className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-medium">
-                    {getInitials(card.assigneeName)}
-                  </div>
+              {(card.assignedUserNames && card.assignedUserNames.length > 0) || card.assigneeName ? (
+                <div className="flex items-center gap-1" title={`Assigned to: ${(card.assignedUserNames && card.assignedUserNames.length > 0) ? card.assignedUserNames.join(', ') : card.assigneeName}`}>
+                  {card.assignedUserNames && card.assignedUserNames.length > 1 ? (
+                    <div className="flex -space-x-1">
+                      {card.assignedUserNames.slice(0, 3).map((name, idx) => (
+                        <div key={idx} className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-medium border-2 border-white">
+                          {getInitials(name)}
+                        </div>
+                      ))}
+                      {card.assignedUserNames.length > 3 && (
+                        <div className="w-6 h-6 rounded-full bg-gray-400 text-white text-xs flex items-center justify-center font-medium border-2 border-white">
+                          +{card.assignedUserNames.length - 3}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-medium">
+                      {getInitials((card.assignedUserNames && card.assignedUserNames.length > 0) ? card.assignedUserNames[0] : card.assigneeName)}
+                    </div>
+                  )}
                 </div>
-              )}
+              ) : null}
               {card.dueDate && (
                 <div className="text-xs text-gray-500">
                   Due: {new Date(card.dueDate).toLocaleDateString()}

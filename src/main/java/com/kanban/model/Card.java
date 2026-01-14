@@ -9,6 +9,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "cards")
@@ -41,7 +43,17 @@ public class Card {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to")
+    @Deprecated // Kept for backward compatibility, use assignedUsers instead
     private User assignedTo;
+    
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "card_assignees",
+        joinColumns = @JoinColumn(name = "card_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    @Builder.Default
+    private List<User> assignedUsers = new ArrayList<>();
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "last_modified_by")

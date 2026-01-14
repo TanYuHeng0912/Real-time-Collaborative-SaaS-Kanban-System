@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -18,7 +19,8 @@ public class CreateCardRequest {
     @NotNull(message = "List ID is required")
     private Long listId;
     private Integer position;
-    private Long assignedTo;
+    private Long assignedTo; // Deprecated, use assignedUserIds instead
+    private List<Long> assignedUserIds; // New: multiple assignees
     private LocalDateTime dueDate;
 }
 

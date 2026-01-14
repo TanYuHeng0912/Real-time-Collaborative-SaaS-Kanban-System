@@ -15,6 +15,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,10 +45,22 @@ public class CardService {
             position = maxPosition == null ? 0 : maxPosition + 1;
         }
         
+        // Handle multiple assignees
+        List<User> assignedUsers = new ArrayList<>();
+        if (request.getAssignedUserIds() != null && !request.getAssignedUserIds().isEmpty()) {
+            assignedUsers = request.getAssignedUserIds().stream()
+                    .map(userId -> userRepository.findById(userId).orElse(null))
+                    .filter(user -> user != null)
+                    .collect(Collectors.toList());
+        }
+        
+        // Backward compatibility: also support single assignedTo
         User assignedTo = null;
-        if (request.getAssignedTo() != null) {
-            assignedTo = userRepository.findById(request.getAssignedTo())
-                    .orElse(null);
+        if (request.getAssignedTo() != null && assignedUsers.isEmpty()) {
+            assignedTo = userRepository.findById(request.getAssignedTo()).orElse(null);
+            if (assignedTo != null) {
+                assignedUsers.add(assignedTo);
+            }
         }
         
         Card card = Card.builder()
@@ -56,7 +69,8 @@ public class CardService {
                 .list(list)
                 .position(position)
                 .createdBy(currentUser)
-                .assignedTo(assignedTo)
+                .assignedTo(assignedTo) // Keep for backward compatibility
+                .assignedUsers(assignedUsers)
                 .lastModifiedBy(currentUser)
                 .dueDate(request.getDueDate())
                 .isDeleted(false)
@@ -115,17 +129,41 @@ public class CardService {
         if (request.getPosition() != null) {
             card.setPosition(request.getPosition());
         }
-        if (request.getAssignedTo() != null) {
-            // Only admins can assign cards
+        // Handle multiple assignees (only admins can assign)
+        if (request.getAssignedUserIds() != null) {
             if (currentUser.getRole() != User.UserRole.ADMIN) {
                 throw new AccessDeniedException("Only administrators can assign cards.");
             }
-            User assignedTo = userRepository.findById(request.getAssignedTo())
-                    .orElse(null);
+            
+            List<User> newAssignedUsers = request.getAssignedUserIds().stream()
+                    .map(userId -> userRepository.findById(userId).orElse(null))
+                    .filter(user -> user != null)
+                    .collect(Collectors.toList());
+            
+            // Clear existing assignees and add new ones (properly manage ManyToMany collection)
+            card.getAssignedUsers().clear();
+            card.getAssignedUsers().addAll(newAssignedUsers);
+            
+            // Update deprecated assignedTo for backward compatibility (use first assignee)
+            card.setAssignedTo(newAssignedUsers.isEmpty() ? null : newAssignedUsers.get(0));
+        } else if (request.getAssignedTo() != null) {
+            // Backward compatibility: handle single assignedTo
+            if (currentUser.getRole() != User.UserRole.ADMIN) {
+                throw new AccessDeniedException("Only administrators can assign cards.");
+            }
+            
+            User assignedTo = userRepository.findById(request.getAssignedTo()).orElse(null);
             card.setAssignedTo(assignedTo);
+            
+            // Clear existing assignees and add new one (properly manage ManyToMany collection)
+            card.getAssignedUsers().clear();
+            if (assignedTo != null) {
+                card.getAssignedUsers().add(assignedTo);
+            }
         }
         if (request.getDueDate() != null) {
-            card.setDueDate(request.getDueDate());
+            // Convert LocalDate to LocalDateTime at start of day (00:00:00)
+            card.setDueDate(request.getDueDate().atStartOfDay());
         }
         
         card.setLastModifiedBy(currentUser);
@@ -171,7 +209,36 @@ public class CardService {
         cardRepository.save(card);
     }
     
+    private String formatUserName(User user) {
+        if (user.getFullName() != null && !user.getFullName().trim().isEmpty()) {
+            return user.getFullName();
+        }
+        // Format username for better display
+        String username = user.getUsername();
+        if (username.contains("@")) {
+            // If username is an email, extract the local part
+            username = username.substring(0, username.indexOf("@"));
+        }
+        // Capitalize first letter
+        if (!username.isEmpty()) {
+            username = username.substring(0, 1).toUpperCase() + username.substring(1);
+        }
+        return username;
+    }
+    
     private CardDTO toDTO(Card card) {
+        // Get assigned user IDs and names
+        List<Long> assignedUserIds = card.getAssignedUsers().stream()
+                .map(User::getId)
+                .collect(Collectors.toList());
+        List<String> assignedUserNames = card.getAssignedUsers().stream()
+                .map(this::formatUserName)
+                .collect(Collectors.toList());
+        
+        // Backward compatibility: assignedTo and assigneeName (use first assignee if exists)
+        Long assignedTo = assignedUserIds.isEmpty() ? null : assignedUserIds.get(0);
+        String assigneeName = assignedUserNames.isEmpty() ? null : assignedUserNames.get(0);
+        
         return CardDTO.builder()
                 .id(card.getId())
                 .title(card.getTitle())
@@ -179,11 +246,13 @@ public class CardService {
                 .listId(card.getList().getId())
                 .position(card.getPosition())
                 .createdBy(card.getCreatedBy().getId())
-                .creatorName(card.getCreatedBy().getFullName() != null ? card.getCreatedBy().getFullName() : card.getCreatedBy().getUsername())
-                .assignedTo(card.getAssignedTo() != null ? card.getAssignedTo().getId() : null)
-                .assigneeName(card.getAssignedTo() != null ? (card.getAssignedTo().getFullName() != null ? card.getAssignedTo().getFullName() : card.getAssignedTo().getUsername()) : null)
+                .creatorName(formatUserName(card.getCreatedBy()))
+                .assignedTo(assignedTo) // Backward compatibility
+                .assigneeName(assigneeName) // Backward compatibility
+                .assignedUserIds(assignedUserIds)
+                .assignedUserNames(assignedUserNames)
                 .lastModifiedBy(card.getLastModifiedBy() != null ? card.getLastModifiedBy().getId() : null)
-                .lastModifiedByName(card.getLastModifiedBy() != null ? (card.getLastModifiedBy().getFullName() != null ? card.getLastModifiedBy().getFullName() : card.getLastModifiedBy().getUsername()) : null)
+                .lastModifiedByName(card.getLastModifiedBy() != null ? formatUserName(card.getLastModifiedBy()) : null)
                 .dueDate(card.getDueDate())
                 .createdAt(card.getCreatedAt())
                 .updatedAt(card.getUpdatedAt())

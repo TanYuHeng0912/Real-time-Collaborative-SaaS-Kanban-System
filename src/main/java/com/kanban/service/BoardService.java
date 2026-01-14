@@ -58,7 +58,7 @@ public class BoardService {
     public BoardDTO getBoardById(Long id) {
         permissionService.verifyBoardAccess(id); // Verify user has access to board
         
-        Board board = boardRepository.findByIdAndIsDeletedFalse(id)
+        Board board = boardRepository.findByIdWithListsAndCards(id)
                 .orElseThrow(() -> new RuntimeException("Board not found"));
         
         return toDTOWithLists(board);
@@ -136,7 +136,34 @@ public class BoardService {
                 .build();
     }
     
+    private String formatUserName(com.kanban.model.User user) {
+        if (user.getFullName() != null && !user.getFullName().trim().isEmpty()) {
+            return user.getFullName();
+        }
+        // Format username for better display
+        String username = user.getUsername();
+        if (username.contains("@")) {
+            // If username is an email, extract the local part
+            username = username.substring(0, username.indexOf("@"));
+        }
+        // Capitalize first letter
+        if (!username.isEmpty()) {
+            username = username.substring(0, 1).toUpperCase() + username.substring(1);
+        }
+        return username;
+    }
+    
     private com.kanban.dto.CardDTO cardToDTO(com.kanban.model.Card card) {
+        // Get assigned user IDs and names
+        // Note: assignedUsers collection is lazy-loaded and not fetched in board query
+        // For now, return empty lists - assignedUsers will be populated when cards are loaded individually
+        List<Long> assignedUserIds = new java.util.ArrayList<>();
+        List<String> assignedUserNames = new java.util.ArrayList<>();
+        
+        // Backward compatibility: assignedTo and assigneeName (use first assignee if exists)
+        Long assignedTo = assignedUserIds.isEmpty() ? null : assignedUserIds.get(0);
+        String assigneeName = assignedUserNames.isEmpty() ? null : assignedUserNames.get(0);
+        
         return com.kanban.dto.CardDTO.builder()
                 .id(card.getId())
                 .title(card.getTitle())
@@ -144,11 +171,13 @@ public class BoardService {
                 .listId(card.getList().getId())
                 .position(card.getPosition())
                 .createdBy(card.getCreatedBy().getId())
-                .creatorName(card.getCreatedBy().getFullName() != null ? card.getCreatedBy().getFullName() : card.getCreatedBy().getUsername())
-                .assignedTo(card.getAssignedTo() != null ? card.getAssignedTo().getId() : null)
-                .assigneeName(card.getAssignedTo() != null ? (card.getAssignedTo().getFullName() != null ? card.getAssignedTo().getFullName() : card.getAssignedTo().getUsername()) : null)
+                .creatorName(formatUserName(card.getCreatedBy()))
+                .assignedTo(assignedTo) // Backward compatibility
+                .assigneeName(assigneeName) // Backward compatibility
+                .assignedUserIds(assignedUserIds)
+                .assignedUserNames(assignedUserNames)
                 .lastModifiedBy(card.getLastModifiedBy() != null ? card.getLastModifiedBy().getId() : null)
-                .lastModifiedByName(card.getLastModifiedBy() != null ? (card.getLastModifiedBy().getFullName() != null ? card.getLastModifiedBy().getFullName() : card.getLastModifiedBy().getUsername()) : null)
+                .lastModifiedByName(card.getLastModifiedBy() != null ? formatUserName(card.getLastModifiedBy()) : null)
                 .dueDate(card.getDueDate())
                 .createdAt(card.getCreatedAt())
                 .updatedAt(card.getUpdatedAt())

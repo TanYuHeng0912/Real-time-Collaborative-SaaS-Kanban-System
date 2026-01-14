@@ -9,33 +9,26 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
-@Table(name = "boards")
+@Table(name = "board_members",
+       uniqueConstraints = @UniqueConstraint(columnNames = {"board_id", "user_id", "is_deleted"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Board {
+public class BoardMember {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(nullable = false, length = 100)
-    private String name;
-    
-    @Column(columnDefinition = "TEXT")
-    private String description;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "board_id", nullable = false)
+    private Board board;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "workspace_id", nullable = false)
-    private Workspace workspace;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", nullable = false)
-    private User createdBy;
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
     
     @Column(name = "is_deleted", nullable = false)
     @Builder.Default
@@ -48,14 +41,5 @@ public class Board {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-    
-    @OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("position ASC")
-    @Builder.Default
-    private List<ListEntity> lists = new ArrayList<>();
-    
-    @OneToMany(mappedBy = "board", cascade = CascadeType.ALL)
-    @Builder.Default
-    private List<BoardMember> members = new ArrayList<>();
 }
 
