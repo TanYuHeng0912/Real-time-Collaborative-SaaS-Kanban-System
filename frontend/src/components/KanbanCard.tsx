@@ -41,6 +41,10 @@ export default function KanbanCard({ card, index, listId, boardId }: KanbanCardP
       queryClient.refetchQueries({ queryKey: ['board', boardId] });
       setIsEditing(false);
     },
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to update card';
+      toast.error(errorMessage);
+    },
   });
 
   const deleteCardMutation = useMutation({

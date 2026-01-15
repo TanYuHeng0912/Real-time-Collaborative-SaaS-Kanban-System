@@ -18,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class PermissionService {
@@ -125,7 +127,7 @@ public class PermissionService {
     @Transactional(readOnly = true)
     public boolean canEditCard(Long cardId, User user) {
         if (user.getRole() == User.UserRole.ADMIN) {
-            return true; // Admins can edit any card
+            return true; // System admins can edit any card
         }
         
         Card card = cardRepository.findByIdAndIsDeletedFalse(cardId)
@@ -136,45 +138,38 @@ public class PermissionService {
         
         // User can edit if:
         // 1. They created the card, OR
-        // 2. The card is assigned to them (in assignedUsers list), OR
-        // 3. They have access to the board (board members can move/edit cards)
+        // 2. The card is assigned to them (in assignedUsers list)
         try {
             boolean isCreator = false;
             if (card.getCreatedBy() != null) {
-                isCreator = card.getCreatedBy().getId().equals(user.getId());
+                try {
+                    // Ensure createdBy is loaded by accessing it
+                    User creator = card.getCreatedBy();
+                    if (creator != null && creator.getId() != null) {
+                        isCreator = creator.getId().equals(user.getId());
+                    }
+                } catch (Exception ex) {
+                    // Lazy loading exception - createdBy might not be loaded
+                    // Fall back to query-based check
+                    // For now, deny access if we can't verify
+                    isCreator = false;
+                }
             }
             
             boolean isAssigned = false;
             if (card.getAssignedUsers() != null && !card.getAssignedUsers().isEmpty()) {
-                isAssigned = card.getAssignedUsers().stream()
-                        .anyMatch(u -> u != null && u.getId().equals(user.getId()));
-            }
-            
-            // If creator or assigned, allow
-            if (isCreator || isAssigned) {
-                return true;
-            }
-            
-            // Otherwise, check board access - board members should be able to move cards
-            // Get list ID from card
-            Long listId = null;
-            try {
-                if (card.getList() != null) {
-                    listId = card.getList().getId();
-                }
-            } catch (Exception ex) {
-                // Lazy loading failed, use query
-                listId = cardRepository.findListIdByCardId(cardId).orElse(null);
-            }
-            
-            if (listId != null) {
-                ListEntity list = listRepository.findByIdWithBoard(listId).orElse(null);
-                if (list != null && list.getBoard() != null) {
-                    return hasBoardAccess(list.getBoard().getId(), user);
+                try {
+                    // Trigger lazy loading by accessing the collection
+                    List<User> assigned = card.getAssignedUsers();
+                    isAssigned = assigned.stream()
+                            .anyMatch(u -> u != null && u.getId() != null && u.getId().equals(user.getId()));
+                } catch (Exception ex) {
+                    // Lazy loading exception - assignedUsers might not be loaded
+                    isAssigned = false;
                 }
             }
             
-            return false;
+            return isCreator || isAssigned;
         } catch (Exception e) {
             // If we can't check permissions due to lazy loading, deny access for safety
             return false;
@@ -184,7 +179,7 @@ public class PermissionService {
     @Transactional(readOnly = true)
     public boolean canDeleteCard(Long cardId, User user) {
         if (user.getRole() == User.UserRole.ADMIN) {
-            return true; // Admins can delete any card
+            return true; // System admins can delete any card
         }
         
         Card card = cardRepository.findByIdAndIsDeletedFalse(cardId)
@@ -196,11 +191,39 @@ public class PermissionService {
         // User can delete if:
         // 1. They created the card, OR
         // 2. The card is assigned to them (in assignedUsers list)
-        boolean isCreator = card.getCreatedBy().getId().equals(user.getId());
-        boolean isAssigned = card.getAssignedUsers().stream()
-                .anyMatch(u -> u.getId().equals(user.getId()));
-        
-        return isCreator || isAssigned;
+        try {
+            boolean isCreator = false;
+            if (card.getCreatedBy() != null) {
+                try {
+                    // Ensure createdBy is loaded by accessing it
+                    User creator = card.getCreatedBy();
+                    if (creator != null && creator.getId() != null) {
+                        isCreator = creator.getId().equals(user.getId());
+                    }
+                } catch (Exception ex) {
+                    // Lazy loading exception - createdBy might not be loaded
+                    isCreator = false;
+                }
+            }
+            
+            boolean isAssigned = false;
+            if (card.getAssignedUsers() != null && !card.getAssignedUsers().isEmpty()) {
+                try {
+                    // Trigger lazy loading by accessing the collection
+                    List<User> assigned = card.getAssignedUsers();
+                    isAssigned = assigned.stream()
+                            .anyMatch(u -> u != null && u.getId() != null && u.getId().equals(user.getId()));
+                } catch (Exception ex) {
+                    // Lazy loading exception - assignedUsers might not be loaded
+                    isAssigned = false;
+                }
+            }
+            
+            return isCreator || isAssigned;
+        } catch (Exception e) {
+            // If we can't check permissions due to lazy loading, deny access for safety
+            return false;
+        }
     }
     
     @Transactional(readOnly = true)

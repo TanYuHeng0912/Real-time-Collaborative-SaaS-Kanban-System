@@ -32,11 +32,16 @@ public class CardService {
     public CardDTO createCard(CreateCardRequest request) {
         User currentUser = permissionService.getCurrentUser();
         
-        ListEntity list = listRepository.findByIdAndIsDeletedFalse(request.getListId())
+        ListEntity list = listRepository.findByIdWithBoard(request.getListId())
                 .orElseThrow(() -> new RuntimeException("List not found"));
         
-        if (!permissionService.canEditList(list.getId(), currentUser)) {
-            throw new AccessDeniedException("You do not have permission to create cards in this list.");
+        // Any board member can create cards, but only workspace owners/admins can edit lists
+        if (list.getBoard() == null) {
+            throw new RuntimeException("List must belong to a board");
+        }
+        
+        if (!permissionService.hasBoardAccess(list.getBoard().getId(), currentUser)) {
+            throw new AccessDeniedException("You do not have permission to create cards in this board.");
         }
         
         Integer position = request.getPosition();
@@ -223,8 +228,10 @@ public class CardService {
     public CardDTO moveCard(Long id, MoveCardRequest request) {
         User currentUser = permissionService.getCurrentUser();
         
-        // For moving cards, check board access rather than card edit permissions
-        // Anyone with board access should be able to move cards (standard Kanban behavior)
+        // Check if user can edit this card (only creator, assigned users, or admins can move cards)
+        if (!permissionService.canEditCard(id, currentUser)) {
+            throw new AccessDeniedException("You do not have permission to move this card.");
+        }
         
         // Get target list first to verify it exists and get board ID
         ListEntity targetList = listRepository.findByIdWithBoard(request.getTargetListId())
@@ -236,9 +243,9 @@ public class CardService {
         
         Long boardId = targetList.getBoard().getId();
         
-        // Check board access using target list's board
+        // Verify user has access to the target board
         if (!permissionService.hasBoardAccess(boardId, currentUser)) {
-            throw new AccessDeniedException("You do not have permission to move cards in this board.");
+            throw new AccessDeniedException("You do not have permission to move cards to this board.");
         }
         
         // Get source list ID to verify it's in the same board
