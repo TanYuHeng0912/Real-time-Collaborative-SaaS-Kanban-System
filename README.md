@@ -8,7 +8,7 @@ A full-stack Kanban board application built with Spring Boot and React, featurin
 - **Spring Boot 3.2+** with Java 17
 - **Spring Data JPA** for database operations
 - **Spring Security** with JWT authentication
-- **MySQL 8.0+** for data persistence
+- **PostgreSQL** for data persistence
 - **Redis** for caching/session management (configured but optional)
 - **WebSocket (STOMP)** for real-time updates
 - **Project Lombok** for reducing boilerplate code
@@ -30,7 +30,7 @@ A full-stack Kanban board application built with Spring Boot and React, featurin
 
 - **Java 17+**
 - **Maven 3.6+**
-- **MySQL 8.0+**
+- **PostgreSQL**
 - **Node.js 18+** and **npm**
 - **Redis** (optional, for caching)
 
@@ -38,12 +38,12 @@ A full-stack Kanban board application built with Spring Boot and React, featurin
 
 ### 1. Database Setup
 
-1. Start MySQL server
+1. Start PostgreSQL server
 2. Run the schema script:
-   ```sql
-   mysql -u root -p < database/schema.sql
+   ```bash
+   psql -U postgres -f database/schema.sql
    ```
-   Or manually execute the SQL in `database/schema.sql`
+   Or manually execute the SQL in `database/schema.sql` using your PostgreSQL client (pgAdmin, psql, etc.)
 
 ### 2. Backend Setup
 
@@ -51,7 +51,7 @@ A full-stack Kanban board application built with Spring Boot and React, featurin
    ```yaml
    spring:
      datasource:
-       url: jdbc:mysql://localhost:3306/kanban_db
+       url: jdbc:postgresql://localhost:5432/kanban_db
        username: your_username
        password: your_password
    ```
