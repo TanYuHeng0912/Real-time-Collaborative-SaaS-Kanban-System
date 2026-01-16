@@ -1,4 +1,4 @@
-# High-Concurrency Collaborative Kanban System
+# REal Time Collaborative Kanban System
 
 A full-stack Kanban board application built with Spring Boot and React, featuring real-time collaboration through WebSocket connections.
 
@@ -282,8 +282,6 @@ A full-stack Kanban board application built with Spring Boot and React, featurin
 - **CORS configuration**: Configurable allowed origins
 - **JWT authentication**: Secure token-based authentication
 
-
-```
 
 
 
