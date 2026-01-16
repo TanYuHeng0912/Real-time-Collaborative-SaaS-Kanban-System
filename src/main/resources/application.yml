@@ -3,9 +3,11 @@ spring:
     name: kanban-system
   
   datasource:
-    url: jdbc:postgresql://localhost:5432/kanban_db
-    username: postgres
-    password: Tan09120912
+    # Use environment variables for production - defaults for local dev
+    # In production, set: SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/kanban_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:changeme}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
@@ -14,8 +16,10 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: validate
-    show-sql: false
+      # Use environment variable: SPRING_JPA_HIBERNATE_DDL_AUTO (default: validate)
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
+    # Use environment variable: SPRING_JPA_SHOW_SQL (default: false)
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -23,9 +27,10 @@ spring:
         use_sql_comments: true
   
   redis:
-    host: localhost
-    port: 6379
-    password:
+    # Use environment variables for production
+    host: ${SPRING_REDIS_HOST:localhost}
+    port: ${SPRING_REDIS_PORT:6379}
+    password: ${SPRING_REDIS_PASSWORD:}
     timeout: 60000
     lettuce:
       pool:
@@ -34,17 +39,33 @@ spring:
         min-idle: 0
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
   servlet:
-    context-path: /api
+    context-path: ${SERVER_SERVLET_CONTEXT_PATH:/api}
 
 jwt:
-  secret: your-secret-key-change-in-production-min-256-bits-long
-  expiration: 86400000 # 24 hours in milliseconds
+  # SECURITY: MUST set JWT_SECRET in production via environment variable
+  # Generate a secure secret: openssl rand -base64 64
+  secret: ${JWT_SECRET:your-secret-key-change-in-production-min-256-bits-long}
+  expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
 
 logging:
   level:
-    com.kanban: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.web: DEBUG
+    # Use environment variable: LOGGING_LEVEL (default: INFO for production, DEBUG for dev)
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.kanban: ${LOGGING_LEVEL_COM_KANBAN:INFO}
+    org.springframework.security: ${LOGGING_LEVEL_SPRING_SECURITY:WARN}
+    org.springframework.web: ${LOGGING_LEVEL_SPRING_WEB:WARN}
+
+# CORS Configuration (comma-separated list of allowed origins)
+# For Render deployment, set: cors.allowed.origins=https://your-frontend.onrender.com,https://your-custom-domain.com
+cors:
+  allowed:
+    origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+
+# WebSocket Configuration (comma-separated list of allowed origins)
+# For Render deployment, set: websocket.allowed.origins=https://your-frontend.onrender.com,https://your-custom-domain.com
+websocket:
+  allowed:
+    origins: ${WEBSOCKET_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
 
