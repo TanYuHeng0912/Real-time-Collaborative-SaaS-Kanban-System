@@ -83,3 +83,6 @@ application-dev.yml
 logs/
 *.log
 
+# Deployment documentation (keep local only)
+RENDER_DEPLOYMENT.md
+
