@@ -25,7 +25,16 @@ RUN npm ci --only=production=false
 # Copy source code
 COPY . .
 
-# Build the application
+# Accept build argument for API base URL (defaults to /api for Docker)
+# Vite requires env vars to be prefixed with VITE_ and available at build time
+# Note: ARG must be declared before use, and ENV makes it available to RUN commands
+ARG VITE_API_BASE_URL=/api
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
+# Verify the env var is set (for debugging)
+RUN echo "Building with VITE_API_BASE_URL=$VITE_API_BASE_URL"
+
+# Build the application (the env var will be available to Vite)
 RUN npm run build
 
 # Stage 2: Production image with nginx

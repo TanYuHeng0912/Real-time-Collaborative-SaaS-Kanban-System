@@ -102,6 +102,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api  # Use relative path for nginx proxy
     container_name: kanban-frontend
     restart: unless-stopped
     ports:
