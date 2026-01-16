@@ -14,15 +14,30 @@ interface KanbanListProps {
   list: ListDTO;
   index: number;
   isDraggable?: boolean;
+  searchQuery?: string;
 }
 
-export default function KanbanList({ list, index, isDraggable = false }: KanbanListProps) {
+export default function KanbanList({ list, index, isDraggable = false, searchQuery = '' }: KanbanListProps) {
   const queryClient = useQueryClient();
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const [isCreatingCard, setIsCreatingCard] = useState(false);
   const [newCardTitle, setNewCardTitle] = useState('');
   const [isEditingList, setIsEditingList] = useState(false);
   const [editListName, setEditListName] = useState(list.name);
+
+  // Filter cards based on search query
+  const filteredCards = searchQuery.trim()
+    ? list.cards?.filter(card =>
+        card.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.creatorName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.assigneeName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.assignedUserNames?.some(name => name.toLowerCase().includes(searchQuery.toLowerCase()))
+      ) || []
+    : list.cards || [];
+
+  // Card count to display (filtered count if searching, total count otherwise)
+  const displayCardCount = searchQuery.trim() ? filteredCards.length : (list.cards?.length || 0);
 
   const updateListMutation = useMutation({
     mutationFn: (name: string) => boardService.updateList(list.id, { name, boardId: list.boardId }),
@@ -115,41 +130,50 @@ export default function KanbanList({ list, index, isDraggable = false }: KanbanL
               Cancel
             </Button>
           </form>
-        ) : (
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-sm text-gray-900 uppercase tracking-wide flex-1">{list.name}</h2>
-            {/* Only show edit/delete buttons for admins */}
-            {isAdmin() && (
-              <div className="flex gap-1 ml-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 text-gray-400 hover:text-gray-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEditList();
-                  }}
-                >
-                  <Edit2 className="h-3 w-3" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 text-gray-400 hover:text-red-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteList();
-                  }}
-                  disabled={deleteListMutation.isPending}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-1">
+                        <h2 className="font-semibold text-sm text-gray-900 uppercase tracking-wide">{list.name}</h2>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          searchQuery.trim() && filteredCards.length > 0
+                            ? 'text-blue-600 bg-blue-100'
+                            : 'text-gray-500 bg-gray-100'
+                        }`}>
+                          {displayCardCount}
+                        </span>
+                      </div>
+                      {/* Only show edit/delete buttons for admins */}
+                      {isAdmin() && (
+                        <div className="flex gap-1 ml-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-gray-400 hover:text-gray-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditList();
+                            }}
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-gray-400 hover:text-red-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteList();
+                            }}
+                            disabled={deleteListMutation.isPending}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
       </div>
       <Droppable droppableId={list.id.toString()} type="CARD">
         {(provided, snapshot) => (
@@ -160,7 +184,7 @@ export default function KanbanList({ list, index, isDraggable = false }: KanbanL
               snapshot.isDraggingOver ? 'bg-blue-50' : 'bg-gray-50'
             }`}
           >
-            {list.cards.map((card, index) => (
+            {filteredCards.map((card, index) => (
               <KanbanCard key={card.id} card={card} index={index} listId={list.id} boardId={list.boardId} />
             ))}
             {provided.placeholder}
@@ -246,7 +270,16 @@ export default function KanbanList({ list, index, isDraggable = false }: KanbanL
                     </form>
                   ) : (
                     <div className="flex items-center justify-between">
-                      <h2 className="font-semibold text-sm text-gray-900 uppercase tracking-wide flex-1">{list.name}</h2>
+                      <div className="flex items-center gap-2 flex-1">
+                        <h2 className="font-semibold text-sm text-gray-900 uppercase tracking-wide">{list.name}</h2>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          searchQuery.trim() && filteredCards.length > 0
+                            ? 'text-blue-600 bg-blue-100'
+                            : 'text-gray-500 bg-gray-100'
+                        }`}>
+                          {displayCardCount}
+                        </span>
+                      </div>
                       {/* Only show edit/delete buttons for admins */}
                       {isAdmin() && (
                         <div className="flex gap-1 ml-2">
@@ -291,7 +324,7 @@ export default function KanbanList({ list, index, isDraggable = false }: KanbanL
                       snapshot.isDraggingOver ? 'bg-blue-50' : 'bg-gray-50'
                     }`}
                   >
-                    {list.cards.map((card, index) => (
+                    {filteredCards.map((card, index) => (
                       <KanbanCard key={card.id} card={card} index={index} listId={list.id} boardId={list.boardId} />
                     ))}
                     {provided.placeholder}

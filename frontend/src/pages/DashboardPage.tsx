@@ -12,7 +12,8 @@ import KanbanBoard from '@/components/KanbanBoard';
 import CreateBoardDialog from '@/components/CreateBoardDialog';
 import NoBoardsMessage from '@/components/NoBoardsMessage';
 import Navigation from '@/components/Navigation';
-import { Info } from 'lucide-react';
+import { Info, Search, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 export default function DashboardPage() {
   const { boardId } = useParams<{ boardId: string }>();
@@ -21,6 +22,7 @@ export default function DashboardPage() {
   const { setCurrentBoard, currentBoard, updateCardOptimistic, moveCardOptimistic, deleteCardOptimistic, addCardOptimistic } = useKanbanStore();
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const [showPriorityLegend, setShowPriorityLegend] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Fetch workspaces and boards to check if user has any boards
   const { data: workspaces } = useQuery({
@@ -227,49 +229,71 @@ export default function DashboardPage() {
                 <p className="text-gray-600 mt-1 text-sm">{currentBoard.description}</p>
               )}
             </div>
-            {/* Priority Guide */}
-            <div className="relative">
-              <button
-                onMouseEnter={() => setShowPriorityLegend(true)}
-                onMouseLeave={() => setShowPriorityLegend(false)}
-                className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <Info className="h-4 w-4 text-gray-500" />
-                <span className="text-sm text-gray-600 font-medium">Priority Guide</span>
-              </button>
+            <div className="flex items-center gap-3">
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search cards..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-9 h-9 w-64 border-gray-200"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
               
-              {showPriorityLegend && (
-                <div 
-                  className="absolute right-0 top-full mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50"
+              {/* Priority Guide */}
+              <div className="relative">
+                <button
                   onMouseEnter={() => setShowPriorityLegend(true)}
                   onMouseLeave={() => setShowPriorityLegend(false)}
+                  className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Card Priority Colors</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-1 bg-red-500 rounded"></div>
-                      <span className="text-sm text-gray-700">High Priority</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-1 bg-yellow-500 rounded"></div>
-                      <span className="text-sm text-gray-700">Medium Priority</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-1 bg-blue-500 rounded"></div>
-                      <span className="text-sm text-gray-700">Low Priority</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-1 bg-green-500 rounded"></div>
-                      <span className="text-sm text-gray-700">Done</span>
+                  <Info className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm text-gray-600 font-medium">Priority Guide</span>
+                </button>
+                
+                {showPriorityLegend && (
+                  <div 
+                    className="absolute right-0 top-full mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50"
+                    onMouseEnter={() => setShowPriorityLegend(true)}
+                    onMouseLeave={() => setShowPriorityLegend(false)}
+                  >
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Card Priority Colors</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-1 bg-red-500 rounded"></div>
+                        <span className="text-sm text-gray-700">High Priority</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-1 bg-yellow-500 rounded"></div>
+                        <span className="text-sm text-gray-700">Medium Priority</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-1 bg-blue-500 rounded"></div>
+                        <span className="text-sm text-gray-700">Low Priority</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-1 bg-green-500 rounded"></div>
+                        <span className="text-sm text-gray-700">Done</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
         <div className="flex-1 overflow-hidden">
-          <KanbanBoard board={currentBoard} />
+          <KanbanBoard board={currentBoard} searchQuery={searchQuery} />
         </div>
       </div>
     </div>

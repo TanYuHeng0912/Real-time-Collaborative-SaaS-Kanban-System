@@ -12,9 +12,10 @@ import toast from 'react-hot-toast';
 
 interface KanbanBoardProps {
   board: BoardDTO;
+  searchQuery?: string;
 }
 
-export default function KanbanBoard({ board }: KanbanBoardProps) {
+export default function KanbanBoard({ board, searchQuery = '' }: KanbanBoardProps) {
   const queryClient = useQueryClient();
   const { moveCardOptimistic, previousBoardState, rollbackBoard, currentBoard } = useKanbanStore();
   const isSystemAdmin = useAuthStore((state) => state.isAdmin);
@@ -163,6 +164,7 @@ export default function KanbanBoard({ board }: KanbanBoardProps) {
                     list={list} 
                     index={index}
                     isDraggable={canMoveLists}
+                    searchQuery={searchQuery}
                   />
                 ))}
                 {provided.placeholder}
@@ -214,6 +216,7 @@ export default function KanbanBoard({ board }: KanbanBoardProps) {
                 list={list} 
                 index={index}
                 isDraggable={false}
+                searchQuery={searchQuery}
               />
             ))}
             <div className="flex-shrink-0 w-80">
