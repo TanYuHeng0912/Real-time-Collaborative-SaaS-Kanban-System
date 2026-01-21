@@ -17,5 +17,13 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     '@typescript-eslint/no-explicit-any': 'off', // Allow any type for now
   },
+  overrides: [
+    {
+      files: ['src/components/ui/**/*.tsx'],
+      rules: {
+        'react-refresh/only-export-components': 'off', // UI components often export variants
+      },
+    },
+  ],
 }
 
