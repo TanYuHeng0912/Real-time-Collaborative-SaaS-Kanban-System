@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: kanban-backend-f5epg6agave6hme2
+  AZURE_WEBAPP_NAME: kanban-backend
   RESOURCE_GROUP: kanban
   JAVA_VERSION: '17'
   PACKAGE_NAME: 'kanban-system-1.0.0.jar'
@@ -67,5 +67,5 @@ jobs:
     - name: Verify deployment
       run: |
         echo "✅ Backend deployed successfully!"
-        echo "URL: https://${{ env.AZURE_WEBAPP_NAME }}.southeastasia-01.azurewebsites.net/api/health"
+        echo "URL: https://kanban-backend-f5epg6agave6hme2.southeastasia-01.azurewebsites.net/api/health"
 

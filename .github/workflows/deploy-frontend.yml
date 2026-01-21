@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: kanban-frontend-htghg4h4e5fbe2fx
+  AZURE_WEBAPP_NAME: kanban-frontend
   RESOURCE_GROUP: kanban
   BACKEND_URL: https://kanban-backend-f5epg6agave6hme2.southeastasia-01.azurewebsites.net
   NODE_VERSION: '20'
@@ -74,5 +74,5 @@ jobs:
     - name: Verify deployment
       run: |
         echo "✅ Frontend deployed successfully!"
-        echo "URL: https://${{ env.AZURE_WEBAPP_NAME }}.southeastasia-01.azurewebsites.net"
+        echo "URL: https://kanban-frontend-htghg4h4e5fbe2fx.southeastasia-01.azurewebsites.net"
 
