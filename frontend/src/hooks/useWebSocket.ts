@@ -10,6 +10,11 @@ interface UseWebSocketProps {
 
 export const useWebSocket = ({ boardId, onCardUpdate }: UseWebSocketProps) => {
   const clientRef = useRef<Client | null>(null);
+  const onCardUpdateRef = useRef(onCardUpdate);
+
+  useEffect(() => {
+    onCardUpdateRef.current = onCardUpdate;
+  }, [onCardUpdate]);
 
   useEffect(() => {
     if (!boardId) return;
@@ -35,7 +40,7 @@ export const useWebSocket = ({ boardId, onCardUpdate }: UseWebSocketProps) => {
           try {
             const update: CardUpdateMessage = JSON.parse(message.body);
             console.log('[WebSocket] Received update:', update);
-            onCardUpdate(update);
+            onCardUpdateRef.current(update);
           } catch (error) {
             console.error('[WebSocket] Error parsing message:', error, message.body);
           }
@@ -60,6 +65,6 @@ export const useWebSocket = ({ boardId, onCardUpdate }: UseWebSocketProps) => {
         clientRef.current.deactivate();
       }
     };
-  }, [boardId, onCardUpdate]);
+  }, [boardId]);
 };
 

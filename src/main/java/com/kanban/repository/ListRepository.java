@@ -13,6 +13,12 @@ import java.util.Optional;
 public interface ListRepository extends JpaRepository<ListEntity, Long> {
     Optional<ListEntity> findByIdAndIsDeletedFalse(Long id);
     List<ListEntity> findByBoardIdAndIsDeletedFalseOrderByPositionAsc(Long boardId);
+
+    @Query("SELECT DISTINCT l FROM ListEntity l " +
+           "LEFT JOIN FETCH l.cards c " +
+           "WHERE l.board.id = :boardId AND l.isDeleted = false " +
+           "ORDER BY l.position")
+    List<ListEntity> findByBoardIdWithCards(@Param("boardId") Long boardId);
     
     @Query("SELECT l FROM ListEntity l " +
            "LEFT JOIN FETCH l.cards c " +

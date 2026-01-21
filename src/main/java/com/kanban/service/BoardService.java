@@ -4,6 +4,7 @@ import com.kanban.dto.BoardDTO;
 import com.kanban.dto.CardDTO;
 import com.kanban.dto.CreateBoardRequest;
 import com.kanban.dto.ListDTO;
+import com.kanban.exception.NotFoundException;
 import com.kanban.model.Board;
 import com.kanban.model.ListEntity;
 import com.kanban.model.User;
@@ -64,10 +65,10 @@ public class BoardService {
         
         // Fetch board with workspace to avoid lazy loading issues
         Board board = boardRepository.findByIdWithWorkspace(id)
-                .orElseThrow(() -> new RuntimeException("Board not found"));
+                .orElseThrow(() -> new NotFoundException("Board not found"));
         
-        // Now fetch lists and cards separately to avoid MultipleBagFetchException
-        List<ListEntity> lists = listRepository.findByBoardIdAndIsDeletedFalseOrderByPositionAsc(id);
+        // Fetch lists with cards in a single query to avoid N+1 issues
+        List<ListEntity> lists = listRepository.findByBoardIdWithCards(id);
         
         // Build DTO with workspace ID
         BoardDTO dto = BoardDTO.builder()
@@ -80,19 +81,9 @@ public class BoardService {
                 .updatedAt(board.getUpdatedAt())
                 .build();
         
-        // Convert lists to DTOs - fetch each list with cards to avoid lazy loading
+        // Convert lists to DTOs
         List<ListDTO> listDTOs = lists.stream()
-                .map(list -> {
-                    // Fetch list with cards to avoid lazy loading
-                    try {
-                        ListEntity listWithCards = listRepository.findByIdWithCards(list.getId())
-                                .orElse(list);
-                        return listToDTO(listWithCards);
-                    } catch (Exception e) {
-                        // If fetching fails, use the list as-is
-                        return listToDTO(list);
-                    }
-                })
+                .map(this::listToDTO)
                 .collect(Collectors.toList());
         dto.setLists(listDTOs);
         

@@ -118,7 +118,7 @@ class AuthControllerTest {
         request.setFullName("New User");
 
         when(authService.register(any(RegisterRequest.class)))
-                .thenThrow(new RuntimeException("Username already exists"));
+                .thenThrow(new IllegalArgumentException("Username already exists"));
 
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -157,7 +157,7 @@ class AuthControllerTest {
         request.setPassword("wrongpassword");
 
         when(authService.login(any(LoginRequest.class)))
-                .thenThrow(new RuntimeException("Invalid email or password"));
+                .thenThrow(new IllegalArgumentException("Invalid email or password"));
 
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -27,11 +27,11 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByUsernameAndIsDeletedFalse(request.getUsername())) {
-            throw new RuntimeException("Username already exists");
+            throw new IllegalArgumentException("Username already exists");
         }
         
         if (userRepository.existsByEmailAndIsDeletedFalse(request.getEmail())) {
-            throw new RuntimeException("Email already exists");
+            throw new IllegalArgumentException("Email already exists");
         }
         
         User user = User.builder()
@@ -59,7 +59,7 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
         // Find user by email first
         User user = userRepository.findByEmailAndIsDeletedFalse(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
         
         // Authenticate using username (Spring Security uses username)
         Authentication authentication = authenticationManager.authenticate(

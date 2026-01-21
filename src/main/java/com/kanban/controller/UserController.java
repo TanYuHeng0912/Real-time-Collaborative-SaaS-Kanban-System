@@ -1,7 +1,9 @@
 package com.kanban.controller;
 
 import com.kanban.dto.UserDTO;
+import com.kanban.exception.NotFoundException;
 import com.kanban.model.User;
+import com.kanban.model.Workspace;
 import com.kanban.repository.BoardRepository;
 import com.kanban.repository.UserRepository;
 import com.kanban.repository.WorkspaceMemberRepository;
@@ -31,9 +33,13 @@ public class UserController {
         permissionService.verifyBoardAccess(boardId);
         
         // Get workspace ID from board
-        Long workspaceId = boardRepository.findByIdAndIsDeletedFalse(boardId)
-                .map(board -> board.getWorkspace().getId())
-                .orElseThrow(() -> new RuntimeException("Board not found"));
+        Workspace workspace = boardRepository.findByIdAndIsDeletedFalse(boardId)
+                .map(board -> board.getWorkspace())
+                .orElseThrow(() -> new NotFoundException("Board not found"));
+        if (workspace == null) {
+            throw new IllegalStateException("Board workspace is missing");
+        }
+        Long workspaceId = workspace.getId();
         
         // Get all users who are members of this workspace
         List<Long> userIds = workspaceMemberRepository.findByWorkspaceIdAndIsDeletedFalse(workspaceId)
