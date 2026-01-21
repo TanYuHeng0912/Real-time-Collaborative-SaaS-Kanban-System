@@ -80,11 +80,9 @@ jobs:
 
     - name: Run linter
       working-directory: ./frontend
-      continue-on-error: true
-      run: npm run lint || echo "Linter warnings found, but continuing..."
+      run: npm run lint
 
     - name: Run tests
       working-directory: ./frontend
-      continue-on-error: true
-      run: npm test -- --run || echo "Some tests failed, but continuing..."
+      run: npm test -- --run
 
