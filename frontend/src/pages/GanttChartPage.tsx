@@ -83,57 +83,7 @@ export default function GanttChartPage() {
     return (diffDays / daysInRange) * 100;
   };
 
-
-  // Redirect if no boardId
-  useEffect(() => {
-    if (!boardId) {
-      navigate('/dashboard');
-    }
-  }, [boardId, navigate]);
-
-  if (isLoading) {
-    return (
-      <div className="h-screen flex flex-col">
-        <Navigation />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-gray-500">Loading...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!board) {
-    return (
-      <div className="h-screen flex flex-col">
-        <Navigation />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-gray-500">Board not found</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (cardsWithDueDates.length === 0) {
-    return (
-      <div className="h-screen flex flex-col">
-        <Navigation />
-        <div className="flex-1 p-6">
-          <div className="mb-4">
-            <h1 className="text-2xl font-bold text-gray-900">{board.name} - Gantt Chart</h1>
-            <p className="text-gray-500 mt-1">No cards with due dates found</p>
-          </div>
-          <button
-            onClick={() => navigate(`/dashboard/${boardId}`)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Back to Board
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Generate time labels based on view type
+  // Generate time labels based on view type (must be before early returns)
   const timeLabels = useMemo(() => {
     const labels: { date: Date; label: string; isWeekend?: boolean; isFirstOfPeriod?: boolean }[] = [];
     
@@ -196,7 +146,7 @@ export default function GanttChartPage() {
     return labels;
   }, [dateRange, viewType]);
 
-  // Group by periods for header display (months/years)
+  // Group by periods for header display (months/years) (must be before early returns)
   const periodGroups = useMemo(() => {
     if (viewType === 'yearly') {
       return timeLabels.map(label => ({
@@ -243,7 +193,55 @@ export default function GanttChartPage() {
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
   };
-  
+
+  // Redirect if no boardId
+  useEffect(() => {
+    if (!boardId) {
+      navigate('/dashboard');
+    }
+  }, [boardId, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="h-screen flex flex-col">
+        <Navigation />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-gray-500">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!board) {
+    return (
+      <div className="h-screen flex flex-col">
+        <Navigation />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-gray-500">Board not found</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (cardsWithDueDates.length === 0) {
+    return (
+      <div className="h-screen flex flex-col">
+        <Navigation />
+        <div className="flex-1 p-6">
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold text-gray-900">{board.name} - Gantt Chart</h1>
+            <p className="text-gray-500 mt-1">No cards with due dates found</p>
+          </div>
+          <button
+            onClick={() => navigate(`/dashboard/${boardId}`)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Back to Board
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
