@@ -67,7 +67,7 @@ public class GlobalExceptionHandler {
                 ex.getClass().getSimpleName(),
                 LocalDateTime.now()
         );
-
+        
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
     

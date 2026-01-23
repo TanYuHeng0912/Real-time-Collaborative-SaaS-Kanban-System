@@ -193,7 +193,7 @@ export default function GanttChartPage() {
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
   };
-
+  
   // Redirect if no boardId
   useEffect(() => {
     if (!boardId) {
