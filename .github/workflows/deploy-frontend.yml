@@ -11,9 +11,9 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: kanban-frontend-htghg4h4e5fbe2fx
+  AZURE_WEBAPP_NAME: kanban-frontend
   RESOURCE_GROUP: kanban
-  BACKEND_URL: https://kanban-backend-f5epg6agave6hme2.southeastasia-01.azurewebsites.net
+  BACKEND_URL: https://kanban-backend.azurewebsites.net
   NODE_VERSION: '20'
 
 jobs:
